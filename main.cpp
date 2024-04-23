@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <cstdio>
 
 namespace {
     constexpr int max = SHRT_MAX + 1;
@@ -14,23 +15,26 @@ public:
         this->coefficients = coefficients;
     }
 
-    void impulse(double value) {
+    void impulse(int zeros, double value) {
         samples.clear();
         samples.resize(samplesNumber, 0);
-        samples[0] = value;
+        samples[zeros] = value;
 
         filter();
     }
 
-    void step(double value) {
+    void step(int zeroNumber, double value) {
         samples.resize(samplesNumber, value);
+        for (int i = 0; i < zeroNumber; ++i) {
+            samples[i] = 0;
+        }
         filter();
     }
 
     void output() {
         int i = 0;
-        for (auto &element: result) {
-            std::cout << i << ". " << element << "\n";
+        for (double &element: result) {
+            printf("%d. %.15f\n", i, element);
             i++;
         }
         result.clear();
@@ -66,7 +70,7 @@ private:
     }
 
     void convertResults(std::vector<short> &filteringResult) {
-        for (int i = 0; i < samplesNumber; ++i) {
+        for (int i = 0; i < samplesNumber + order; ++i) {
             result.push_back((double) filteringResult[i] / max);
         }
     }
@@ -77,10 +81,10 @@ private:
 
         auto quantizedCoefficients = quantizeCoefficients();
         auto quantizedSamples = quantizeSamples();
-        for (int i = 0; i < samplesNumber; ++i) {
+        for (int i = 0; i < samplesNumber + order - 1; i++) {
             sum = 0;
-            for (int j = 0; j < order + 1; ++j) {
-                if (i - j >= 0) {
+            for (int j = 0; j < quantizedCoefficients.size(); ++j) {
+                if (i - j >= 0 && i - j < quantizedCoefficients.size()) {
                     sum += quantizedSamples[i - j] * quantizedCoefficients[j];
                 }
             }
@@ -91,40 +95,42 @@ private:
     }
 };
 
-
+// входной вектор настраиваемой длины (импульсная или функция хевисайда - должны задавать количество нулей, а все остальные 0.8)
+// квантованные значения должны быть в filterCoefficients
 int main() {
     std::vector<double> filterCoefficients = {
-            -0.005240352829934454698124213223309197929,
-            0.012071466320048965942257623851219250355,
-            0.02421434190724541107853085009082860779,
-            -0.011617204054193294715524586990795796737,
-            -0.068181111645009701005548663488298188895,
-            -0.021338477592380677289041202016051101964,
-            0.183237394106925050030199031425581779331,
-            0.391680520031719880957865598247735761106,
-            0.391680520031719880957865598247735761106,
-            0.183237394106925050030199031425581779331,
-            -0.021338477592380677289041202016051101964,
-            -0.068181111645009701005548663488298188895,
-            -0.011617204054193294715524586990795796737,
-            0.02421434190724541107853085009082860779,
-            0.012071466320048965942257623851219250355,
-            -0.005240352829934454698124213223309197929
+            -0.0052490234375,
+            0.0120849609375,
+            0.024200439453125,
+            -0.011627197265625,
+            -0.06817626953125,
+            -0.021331787109375,
+            0.1832275390625,
+            0.391693115234375,
+            0.391693115234375,
+            0.1832275390625,
+            -0.021331787109375,
+            -0.06817626953125,
+            -0.011627197265625,
+            0.024200439453125,
+            0.0120849609375,
+            -0.0052490234375
     };
 
-    double stepCoefficient = 0.8;
+    double stepCoefficient = 0.9;
     double impulseCoefficient = 1 - pow(2, -15);
 
     int filterOrder = 15; // порядок фильтра
-    int filterSamplesNumber = 16; // количество отсчетов
-    Filter filter(filterOrder, filterSamplesNumber, filterCoefficients);
-    filter.step(stepCoefficient);
+    int samplesNumberCur = 40; // количество отсчетов
+    Filter filter(filterOrder, samplesNumberCur, filterCoefficients);
+    int zeros = 3; // количество нулей в функции Хевисайда
+    filter.step(zeros, stepCoefficient);
     std::cout << "Step response:" << std::endl;
     filter.output();
     std::cout << std::endl;
 
     std::cout << "Impulse response:" << std::endl;
-    filter.impulse(impulseCoefficient);
+    filter.impulse(zeros, impulseCoefficient);
     filter.output();
 
     return 0;
