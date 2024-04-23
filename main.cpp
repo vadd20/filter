@@ -70,7 +70,7 @@ private:
     }
 
     void convertResults(std::vector<short> &filteringResult) {
-        for (int i = 0; i < samplesNumber + order; ++i) {
+        for (int i = 0; i < filteringResult.size(); ++i) {
             result.push_back((double) filteringResult[i] / max);
         }
     }
@@ -84,7 +84,7 @@ private:
         for (int i = 0; i < samplesNumber + order - 1; i++) {
             sum = 0;
             for (int j = 0; j < quantizedCoefficients.size(); ++j) {
-                if (i - j >= 0 && i - j < quantizedCoefficients.size()) {
+                if (i - j >= 0 && i - j < quantizedSamples.size() - 1) {
                     sum += quantizedSamples[i - j] * quantizedCoefficients[j];
                 }
             }
@@ -123,7 +123,7 @@ int main() {
     int filterOrder = 15; // порядок фильтра
     int samplesNumberCur = 40; // количество отсчетов
     Filter filter(filterOrder, samplesNumberCur, filterCoefficients);
-    int zeros = 3; // количество нулей в функции Хевисайда
+    int zeros = 1; // количество нулей в функции Хевисайда
     filter.step(zeros, stepCoefficient);
     std::cout << "Step response:" << std::endl;
     filter.output();
